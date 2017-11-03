@@ -101,51 +101,53 @@ When a user clicks a checkbox, holds Shift, and then clicks another checkbox a f
   const checkboxes = document.querySelectorAll('.inbox input[type=checkbox]');
 
   checkboxes.forEach(checkbox => {
-    checkbox.addEventListener('click', handleCheckImprove);
+    checkbox.addEventListener('click', handleCheck);
   });
 
   const checkboxList = Array.from(checkboxes);
-  let firstCheck;
-  let lastEnd;
+  let firstCheckbox;
+  let previousEndIndex;
 
-  function handleCheckImprove(e) {
-    if (!e.shiftKey || !firstCheck) {
-      firstCheck = this;
-      lastEnd = null;
+  function handleCheck(e) {
+    if (!e.shiftKey || !firstCheckbox) {
+      previousEndIndex = null;
+      firstCheckbox = isAllUnchecked() ? null : this;
       return;
     }
 
-    if (e.shiftKey && firstCheck !== this && checkboxList[lastEnd] !== this) {
-      const currentCheck = this;
+    const currentCheckbox = this;
+    const startIndex = checkboxList.indexOf(firstCheckbox);
+    const endIndex = checkboxList.indexOf(currentCheckbox);
 
-      let start = checkboxList.indexOf(firstCheck);
-      let end = checkboxList.indexOf(currentCheck);
+    // click again on the first checkbox => unchecked all checkbox in the interval [startIndex, previousEndIndex]
+    if (firstCheckbox === currentCheckbox && previousEndIndex) {
+      switchCheckbox(startIndex, previousEndIndex, firstCheckbox.checked);
+    }
+    // interval select
+    else if (firstCheckbox !== currentCheckbox && checkboxList[previousEndIndex] !== this) {
+      switchCheckbox(startIndex, endIndex, firstCheckbox.checked);
 
-      checkboxList.slice(Math.min(start, end), Math.max(start, end) + 1).forEach(checkbox => {
-        checkbox.checked = firstCheck.checked;
-      });
-
-      if (lastEnd) {
-        if (end < start && end > lastEnd) {
-          checkboxList.slice(lastEnd, end + 1).forEach(checkbox => {
-            checkbox.checked = !firstCheck.checked;
-          });
-        } else if (end > start && end < lastEnd) {
-          checkboxList.slice(end, lastEnd + 1).forEach(checkbox => {
-            checkbox.checked = !firstCheck.checked;
-          });
+      if (previousEndIndex) {
+        // select from top to bottom
+        if (startIndex > endIndex && endIndex > previousEndIndex) {
+          switchCheckbox(previousEndIndex, endIndex, !firstCheckbox.checked);
+        }
+        // select from bottom to top
+        else if (endIndex > startIndex && previousEndIndex > endIndex) {
+          switchCheckbox(endIndex, previousEndIndex, !firstCheckbox.checked);
         }
       }
 
-      lastEnd = end;
-    } else if (e.shiftKey && lastEnd && firstCheck === this) {
-      let start = checkboxList.indexOf(firstCheck);
-      checkboxList.slice(Math.min(start, lastEnd), Math.max(start, lastEnd) + 1).forEach(checkbox => {
-        checkbox.checked = firstCheck.checked;
-      });
+      previousEndIndex = endIndex;
     }
 
-    firstCheck = isAllUnchecked() ? null : firstCheck;
+    firstCheckbox = isAllUnchecked() ? null : firstCheckbox;
+  }
+
+  function switchCheckbox(startIndex, endIndex, isChecked) {
+    checkboxList.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1).forEach(checkbox => {
+      checkbox.checked = isChecked;
+    });
   }
 
   function isAllUnchecked() {
